@@ -1,10 +1,26 @@
 import java.io.File
 import java.nio.file.Files
 import java.util.stream.Collectors
+import kotlin.experimental.and
+import kotlin.experimental.or
+import kotlin.experimental.xor
 
 fun main() {
     doFile("layer0"){
         String(ascii85Decode(it).toByteArray())
+    }
+    doFile("layer1"){
+        String(flipAndShiftBytes(ascii85Decode(it)).toByteArray())
+    }
+}
+
+fun flipAndShiftBytes(decoded: List<Byte>): List<Byte> {
+    return decoded.map {
+        var byte = it.xor(0b01010101)
+        val lastBit = byte.and(0b00000001)
+        byte = byte.toInt().and(0xff).shr(1).toByte()
+        byte = byte.or(lastBit)
+        byte
     }
 }
 
