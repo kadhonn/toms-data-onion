@@ -3,10 +3,15 @@ import java.nio.file.Files
 import java.util.stream.Collectors
 
 fun main() {
-    val file = "layer0"
+    doFile("layer0"){
+        String(ascii85Decode(it).toByteArray())
+    }
+}
+
+private fun doFile(file: String, layer: (String) -> String) {
     val input = Files.lines(File("resources/$file.in").toPath()).collect(Collectors.joining(""))
-    val result = ascii85Decode(input)
-    Files.writeString(File("resources/$file.out").toPath(), String(result.toByteArray()))
+    val result = layer(input)
+    Files.writeString(File("resources/$file.out").toPath(), result)
 }
 
 fun ascii85Decode(input: String): List<Byte> {
