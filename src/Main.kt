@@ -12,6 +12,16 @@ fun main() {
     doFile("layer2") {
         String(parityChecks(ascii85Decode(it)).map { it.toByte() }.toByteArray())
     }
+    doFile("layer3") {
+        String(decrypt(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+    }
+}
+
+fun decrypt(decoded: List<UByte>): List<UByte> {
+    val start = "==[ Layer 4/5: Network Traffic ]==="
+    return decoded.mapIndexed { index, byte ->
+        byte.xor(decoded[index % 32].xor(start.toCharArray()[index % 32].toByte().toUByte()))
+    }
 }
 
 fun parityChecks(decoded: List<UByte>): List<UByte> {
