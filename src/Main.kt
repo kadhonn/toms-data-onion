@@ -1,6 +1,10 @@
 import java.io.File
 import java.nio.file.Files
 import java.util.stream.Collectors
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+
 
 fun main() {
     doFile("layer0") {
@@ -18,6 +22,22 @@ fun main() {
     doFile("layer4") {
         String(route(ascii85Decode(it)).map { it.toByte() }.toByteArray())
     }
+    doFile("layer5") {
+        String(decryptAES(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+    }
+}
+
+fun decryptAES(decoded: List<UByte>): List<UByte> {
+    val kek = decoded.subList(0, 32).map { it.toByte() }.toByteArray()
+    val kekIv = decoded.subList(32, 40).map { it.toByte() }.toByteArray()
+    val encryptedKey = decoded.subList(40, 80).map { it.toByte() }.toByteArray()
+    val iv = decoded.subList(80, 96).map { it.toByte() }.toByteArray()
+    val encryptedPayload = decoded.subList(96, decoded.size).map { it.toByte() }.toByteArray()
+
+    val key = unwrap(kek, encryptedKey, kekIv)
+
+    val payload = decrypt(key, encryptedPayload, iv)
+    return payload.map { it.toUByte() }
 }
 
 fun route(decoded: List<UByte>): List<UByte> {
@@ -155,7 +175,7 @@ fun flipAndShiftUBytes(decoded: List<UByte>): List<UByte> {
 private fun doFile(file: String, layer: (String) -> String) {
     val input = Files.lines(File("resources/$file.in").toPath()).collect(Collectors.joining(""))
     val result = layer(input)
-    Files.writeString(File("resources/$file.out").toPath(), result)
+    Files.write(File("resources/$file.out").toPath(), result.toByteArray())
 }
 
 fun ascii85Decode(input: String): List<UByte> {
@@ -211,4 +231,18 @@ fun splitLong(outUBytes: MutableList<UByte>, group: Long) {
         groupToModify /= 256
     }
     outUBytes.addAll(bytes.reversed())
+}
+
+fun decrypt(key: ByteArray, encrypted: ByteArray, iv: ByteArray): ByteArray {
+    val skeySpec = SecretKeySpec(key, "AES")
+    val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+    cipher.init(Cipher.DECRYPT_MODE, skeySpec, IvParameterSpec(iv))
+    return cipher.doFinal(encrypted)
+}
+
+fun unwrap(key: ByteArray, encrypted: ByteArray, iv: ByteArray): ByteArray {
+    val skeySpec = SecretKeySpec(key, "AES")
+    val c = Cipher.getInstance("AESWrap")
+    c.init(Cipher.UNWRAP_MODE, skeySpec)//, IvParameterSpec(iv)) FFS java, had to hack the IV check because you cannot change it
+    return c.unwrap(encrypted, "AESWrap", Cipher.SECRET_KEY)!!.encoded
 }
