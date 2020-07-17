@@ -126,7 +126,7 @@ fun isValidIPHeader(decoded: List<UByte>, i: Int): Boolean {
 }
 
 fun decrypt(decoded: List<UByte>): List<UByte> {
-    val start = "==[ Layer 4/5: Network Traffic ]==="
+    val start = "==[ Layer 4/6: Network Traffic ]==="
     return decoded.mapIndexed { index, byte ->
         byte.xor(decoded[index % 32].xor(start.toCharArray()[index % 32].toByte().toUByte()))
     }
@@ -235,7 +235,7 @@ fun splitLong(outUBytes: MutableList<UByte>, group: Long) {
 
 fun decrypt(key: ByteArray, encrypted: ByteArray, iv: ByteArray): ByteArray {
     val skeySpec = SecretKeySpec(key, "AES")
-    val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+    val cipher = Cipher.getInstance("AES/CTR/NOPADDING")
     cipher.init(Cipher.DECRYPT_MODE, skeySpec, IvParameterSpec(iv))
     return cipher.doFinal(encrypted)
 }
