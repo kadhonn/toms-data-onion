@@ -7,24 +7,53 @@ import javax.crypto.spec.SecretKeySpec
 
 
 fun main() {
-    doFile("layer0") {
-        String(ascii85Decode(it).map { it.toByte() }.toByteArray())
+//    doFile("layer0") {
+//        String(ascii85Decode(it).map { it.toByte() }.toByteArray())
+//    }
+//    doFile("layer1") {
+//        String(flipAndShiftUBytes(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+//    }
+//    doFile("layer2") {
+//        String(parityChecks(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+//    }
+//    doFile("layer3") {
+//        String(decrypt(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+//    }
+//    doFile("layer4") {
+//        String(route(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+//    }
+//    doFile("layer5") {
+//        String(decryptAES(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+//    }
+    doFile("layer6") {
+        String(emulate(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+//        String(
+//            emulate(
+//                "5048C202A84D0000004F025009C40202E1014F02C1221D00000048300258034F02B029000000483102500CC302AA574802C1213A000000483202487702486F02487202486C0248640248210201656F33342C".hexStringToByteArray()
+//                    .toList().map { it.toUByte() }).map { it.toByte() }.toByteArray()
+//        )
     }
-    doFile("layer1") {
-        String(flipAndShiftUBytes(ascii85Decode(it)).map { it.toByte() }.toByteArray())
+}
+
+private val HEX_CHARS = "0123456789ABCDEF"
+
+fun String.hexStringToByteArray(): ByteArray {
+
+    val result = ByteArray(length / 2)
+
+    for (i in 0 until length step 2) {
+        val firstIndex = HEX_CHARS.indexOf(this[i]);
+        val secondIndex = HEX_CHARS.indexOf(this[i + 1]);
+
+        val octet = firstIndex.shl(4).or(secondIndex)
+        result.set(i.shr(1), octet.toByte())
     }
-    doFile("layer2") {
-        String(parityChecks(ascii85Decode(it)).map { it.toByte() }.toByteArray())
-    }
-    doFile("layer3") {
-        String(decrypt(ascii85Decode(it)).map { it.toByte() }.toByteArray())
-    }
-    doFile("layer4") {
-        String(route(ascii85Decode(it)).map { it.toByte() }.toByteArray())
-    }
-    doFile("layer5") {
-        String(decryptAES(ascii85Decode(it)).map { it.toByte() }.toByteArray())
-    }
+
+    return result
+}
+
+fun emulate(decoded: List<UByte>): List<UByte> {
+    return Tomtel(decoded).emulate()
 }
 
 fun decryptAES(decoded: List<UByte>): List<UByte> {
@@ -243,6 +272,9 @@ fun decrypt(key: ByteArray, encrypted: ByteArray, iv: ByteArray): ByteArray {
 fun unwrap(key: ByteArray, encrypted: ByteArray, iv: ByteArray): ByteArray {
     val skeySpec = SecretKeySpec(key, "AES")
     val c = Cipher.getInstance("AESWrap")
-    c.init(Cipher.UNWRAP_MODE, skeySpec)//, IvParameterSpec(iv)) FFS java, had to hack the IV check because you cannot change it
+    c.init(
+        Cipher.UNWRAP_MODE,
+        skeySpec
+    )//, IvParameterSpec(iv)) FFS java, had to hack the IV check because you cannot change it
     return c.unwrap(encrypted, "AESWrap", Cipher.SECRET_KEY)!!.encoded
 }
